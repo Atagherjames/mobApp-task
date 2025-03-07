@@ -10,15 +10,27 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['username', 'email', 'contact_number', 'password'];
+    protected $fillable = [
+        'full_name',
+        'username',
+        'email',
+        'password',
+        'contact_number',
+        'role'
+    ];
 
-    protected $hidden = ['password', 'remember_token'];
+  
+    protected $hidden = [
+        'password',
+        'remember_token'
+    ];
 
-    protected function casts(): array
-    {
-        return ['password' => 'hashed'];
-    }
 
+    protected $casts = [
+        'password' => 'hashed', 
+    ];
+
+    // Relationship: A user can have many contacts
     public function contacts()
     {
         return $this->hasMany(Contact::class);

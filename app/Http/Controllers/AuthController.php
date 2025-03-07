@@ -6,71 +6,61 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Exception;
 
 
 
 class AuthController extends Controller
 {
-
-     // Register user
-    public function register(Request $request)
+    // ADMIN LOGIN
+    public function adminLogin(Request $request)
     {
-        try {
-            $request->validate([
-                     'full_name' => 'required|min:6',
-                'username' => 'required|unique:users',
-                'email' => 'required|email|unique:users',
-                'password' => 'required|min:6',
-                'contact_number' => 'required'
-            ]);
+        $request->validate([
+            'username' => 'required',
+            'password' => 'required'
+        ]);
 
-            $user = User::create([
-                'full_name' => $request->full_name,
-                'username' => $request->username,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'contact_number' => $request->contact_number
-            ]);
+        $user = User::where('username', $request->username)->where('role', 'admin')->first();
 
-            return response()->json(['message' => 'User registered successfully', 'user' => $user], 201);
-        } catch (Exception $e) {
-            return response()->json(['message' => 'User registration failed', 'error' => $e->getMessage()], 500);
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => 'Invalid admin credentials'], 401);
         }
+
+        $token = $user->createToken('admin_token')->plainTextToken;
+
+        return response()->json(['message' => 'Admin login successful', 'token' => $token]);
     }
 
-
-    // Login
-    public function login(Request $request)
+    // ADMIN LOGOUT
+    public function adminLogout(Request $request)
     {
-        try {
-            $request->validate([
-                'username' => 'required',
-                'password' => 'required'
-            ]);
-
-            if (!Auth::attempt($request->only('username', 'password'))) {
-                return response()->json(['message' => 'Invalid login credentials'], 401);
-            }
-
-            $user = Auth::user();
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return response()->json(['message' => 'Login successful', 'token' => $token]);
-        } catch (Exception $e) {
-            return response()->json(['message' => 'Login failed', 'error' => $e->getMessage()], 500);
-        }
+        $request->user()->tokens()->delete();
+        return response()->json(['message' => 'Admin logged out successfully']);
     }
 
-
-    // logout
-    public function logout(Request $request)
+    // USER LOGIN (for mobile app users)
+    public function userLogin(Request $request)
     {
-        try {
-            $request->user()->tokens()->delete();
-            return response()->json(['message' => 'Logout successful']);
-        } catch (Exception $e) {
-            return response()->json(['message' => 'Logout failed', 'error' => $e->getMessage()], 500);
+        $request->validate([
+            'username' => 'required',
+            'password' => 'required'
+        ]);
+
+        $user = User::where('username', $request->username)->where('role', 'user')->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => 'Invalid user credentials'], 401);
         }
+
+        $token = $user->createToken('user_token')->plainTextToken;
+
+        return response()->json(['message' => 'User login successful', 'token' => $token]);
     }
 
+    // USER LOGOUT
+    public function userLogout(Request $request)
+    {
+        $request->user()->tokens()->delete();
+        return response()->json(['message' => 'User logged out successfully']);
+    }
 }
