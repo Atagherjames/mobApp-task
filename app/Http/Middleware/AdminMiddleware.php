@@ -6,16 +6,15 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-
-   class AdminMiddleware
+class AdminMiddleware
 {
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->user() && auth()->user()->role === 'admin') {
-            return $next($request); // Allow access if the user is an admin
+        // Use the correct authentication guard for admin
+        if (auth('admin')->check() && auth('admin')->user()->role === 'admin') {
+            return $next($request);
         }
 
-        return response()->json(['message' => 'Access denied'], 403); 
+        return response()->json(['message' => 'Access denied'], 403);
     }
 }
-
